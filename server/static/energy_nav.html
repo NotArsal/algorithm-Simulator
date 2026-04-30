@@ -1,0 +1,541 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Energy-Efficient Navigation — Drone & Bot Route Planner</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #f5f5f5;
+    }
+    #topbar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    #topbar h1 {
+      margin: 0 0 12px 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    #controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+    select, input[type="text"], input[type="number"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.15);
+      color: white;
+      font-size: 14px;
+    }
+    select option, input::placeholder {
+      color: #333;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.25);
+    }
+    button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: 0;
+      background: #4ade80;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #22c55e;
+    }
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    #map {
+      height: calc(100vh - 200px);
+      width: 100%;
+    }
+    #info-panel {
+      position: absolute;
+      top: 120px;
+      right: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      min-width: 320px;
+      max-width: 400px;
+      display: none;
+    }
+    #info-panel.visible {
+      display: block;
+    }
+    #info-panel h3 {
+      margin: 0 0 16px 0;
+      color: #1e293b;
+      font-size: 18px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    .info-label {
+      color: #64748b;
+      font-size: 14px;
+    }
+    .info-value {
+      color: #1e293b;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .battery-status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .battery-status.feasible {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .battery-status.not-feasible {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .battery-bar {
+      width: 100%;
+      height: 24px;
+      background: #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 8px;
+      position: relative;
+    }
+    .battery-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .battery-fill.low {
+      background: linear-gradient(90deg, #ef4444 0%, #f87171 100%);
+    }
+    .battery-fill.medium {
+      background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+    }
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <h1>🚁 Energy-Efficient Navigation System</h1>
+    <div id="controls">
+      <div class="control-group">
+        <label>Start Location</label>
+        <select id="srcSelect">
+          <option value="">-- Select Start --</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>End Location</label>
+        <select id="dstSelect">
+          <option value="">-- Select End --</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Vehicle Type</label>
+        <select id="vehicleType">
+          <option value="drone">Drone</option>
+          <option value="ground_bot">Ground Bot</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Battery Capacity (Wh)</label>
+        <input type="number" id="batteryCapacity" placeholder="e.g. 500" value="500" min="0" step="10">
+      </div>
+      <div class="control-group">
+        <label>Route Mode</label>
+        <select id="mode">
+          <option value="1">Fastest</option>
+          <option value="2">Safest</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <button id="computeBtn">Compute Route</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <div id="info-panel">
+    <h3>Route Information</h3>
+    <div id="info-content"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Initialize map (centered on India)
+    const map = L.map('map').setView([18.52, 73.86], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let routeLayer = null;
+    let markers = [];
+    let routeData = null;
+
+    // Load nodes from server
+    async function loadNodes() {
+      try {
+        const res = await fetch('/nodes?combined=true');
+        const nodes = await res.json();
+        
+        const srcSelect = document.getElementById('srcSelect');
+        const dstSelect = document.getElementById('dstSelect');
+        
+        // Clear existing options (except first)
+        srcSelect.innerHTML = '<option value="">-- Select Start --</option>';
+        dstSelect.innerHTML = '<option value="">-- Select End --</option>';
+        
+        // Group nodes by type
+        const mountainNodes = nodes.filter(n => n.label && n.label.toLowerCase().includes('mountain'));
+        const ruralNodes = nodes.filter(n => n.label && (n.label.toLowerCase().includes('rural') || n.label.toLowerCase().includes('village')));
+        const puneNodes = nodes.filter(n => n.label && !n.label.toLowerCase().includes('mountain') && !n.label.toLowerCase().includes('rural') && !n.label.toLowerCase().includes('village'));
+        
+        // Add mountain locations
+        if (mountainNodes.length > 0) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = '🏔️ Mountain Locations';
+          mountainNodes.forEach(node => {
+            const opt = document.createElement('option');
+            opt.value = node.node_id;
+            opt.textContent = node.label || `Node ${node.node_id}`;
+            optgroup.appendChild(opt);
+          });
+          srcSelect.appendChild(optgroup.cloneNode(true));
+          dstSelect.appendChild(optgroup);
+        }
+        
+        // Add rural locations
+        if (ruralNodes.length > 0) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = '🌾 Rural Locations';
+          ruralNodes.forEach(node => {
+            const opt = document.createElement('option');
+            opt.value = node.node_id;
+            opt.textContent = node.label || `Node ${node.node_id}`;
+            optgroup.appendChild(opt);
+          });
+          srcSelect.appendChild(optgroup.cloneNode(true));
+          dstSelect.appendChild(optgroup);
+        }
+        
+        // Add Pune locations
+        if (puneNodes.length > 0) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = '🏙️ Pune Locations';
+          puneNodes.forEach(node => {
+            const opt = document.createElement('option');
+            opt.value = node.node_id;
+            opt.textContent = node.label || `Node ${node.node_id}`;
+            optgroup.appendChild(opt);
+          });
+          srcSelect.appendChild(optgroup.cloneNode(true));
+          dstSelect.appendChild(optgroup);
+        }
+        
+        // Add all other nodes
+        const otherNodes = nodes.filter(n => !n.label || (!n.label.toLowerCase().includes('mountain') && !n.label.toLowerCase().includes('rural') && !n.label.toLowerCase().includes('village')));
+        otherNodes.forEach(node => {
+          if (!puneNodes.find(p => p.node_id === node.node_id)) {
+            const opt1 = document.createElement('option');
+            opt1.value = node.node_id;
+            opt1.textContent = node.label || `Node ${node.node_id}`;
+            srcSelect.appendChild(opt1);
+            
+            const opt2 = opt1.cloneNode(true);
+            dstSelect.appendChild(opt2);
+          }
+        });
+        
+      } catch (err) {
+        console.error('Failed to load nodes:', err);
+      }
+    }
+
+    // Compute route
+    async function computeRoute() {
+      const src = document.getElementById('srcSelect').value;
+      const dst = document.getElementById('dstSelect').value;
+      const vehicleType = document.getElementById('vehicleType').value;
+      const batteryCapacity = parseFloat(document.getElementById('batteryCapacity').value);
+      const mode = parseInt(document.getElementById('mode').value);
+      
+      if (!src || !dst) {
+        alert('Please select both start and end locations');
+        return;
+      }
+      
+      const btn = document.getElementById('computeBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Computing...';
+      
+      // Clear previous route
+      if (routeLayer) {
+        map.removeLayer(routeLayer);
+        routeLayer = null;
+      }
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+      
+      try {
+        const res = await fetch('/route', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            src: src,
+            dst: dst,
+            mode: mode,
+            vehicle_type: vehicleType,
+            battery_capacity_wh: batteryCapacity || null,
+            use_combined: true
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (!data.ok) {
+          throw new Error(data.error || 'Route computation failed');
+        }
+        
+        routeData = data;
+        
+        // Draw route
+        if (data.route && data.route.nodes) {
+          const latlngs = data.route.nodes.map(n => [n.lat, n.lon]);
+          routeLayer = L.polyline(latlngs, {
+            color: '#3b82f6',
+            weight: 6,
+            opacity: 0.8
+          }).addTo(map);
+          
+          map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+          
+          // Add markers
+          const start = data.route.nodes[0];
+          const end = data.route.nodes[data.route.nodes.length - 1];
+          
+          markers.push(L.marker([start.lat, start.lon], {
+            icon: L.divIcon({
+              className: 'start-marker',
+              html: '<div style="background:#22c55e;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid white;">S</div>',
+              iconSize: [24, 24]
+            })
+          }).addTo(map).bindPopup(`<b>Start:</b> ${start.label || start.node_id}`));
+          
+          markers.push(L.marker([end.lat, end.lon], {
+            icon: L.divIcon({
+              className: 'end-marker',
+              html: '<div style="background:#ef4444;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid white;">E</div>',
+              iconSize: [24, 24]
+            })
+          }).addTo(map).bindPopup(`<b>End:</b> ${end.label || end.node_id}`));
+        }
+        
+        // Display energy information
+        displayEnergyInfo(data);
+        
+      } catch (err) {
+        console.error('Route computation error:', err);
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Compute Route';
+      }
+    }
+
+    function displayEnergyInfo(data) {
+      const panel = document.getElementById('info-panel');
+      const content = document.getElementById('info-content');
+      
+      if (!data.energy) {
+        content.innerHTML = '<div class="error-message">Energy calculation not available</div>';
+        panel.classList.add('visible');
+        return;
+      }
+      
+      const energy = data.energy;
+      const route = data.route;
+      
+      let html = '';
+      
+      // Route distance
+      if (route.total_distance_km) {
+        html += `
+          <div class="info-row">
+            <span class="info-label">Distance (One-way)</span>
+            <span class="info-value">${route.total_distance_km.toFixed(2)} km</span>
+          </div>
+        `;
+      }
+      
+      // Travel time
+      if (energy.total_time_hours) {
+        const hours = Math.floor(energy.total_time_hours);
+        const minutes = Math.round((energy.total_time_hours - hours) * 60);
+        html += `
+          <div class="info-row">
+            <span class="info-label">Travel Time (One-way)</span>
+            <span class="info-value">${hours}h ${minutes}m</span>
+          </div>
+        `;
+        
+        const rtHours = Math.floor(energy.round_trip_time_hours);
+        const rtMinutes = Math.round((energy.round_trip_time_hours - rtHours) * 60);
+        html += `
+          <div class="info-row">
+            <span class="info-label">Round Trip Time</span>
+            <span class="info-value">${rtHours}h ${rtMinutes}m</span>
+          </div>
+        `;
+      }
+      
+      // Energy consumption
+      html += `
+        <div class="info-row">
+          <span class="info-label">Energy (One-way)</span>
+          <span class="info-value">${energy.one_way_energy_wh.toFixed(1)} Wh</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Round Trip Energy</span>
+          <span class="info-value">${energy.round_trip_energy_wh.toFixed(1)} Wh</span>
+        </div>
+      `;
+      
+      // Battery requirement and status
+      const minBatteryRequired = energy.min_battery_required_wh;
+      html += `
+        <div class="info-row" style="background:#f0f9ff;padding:12px;border-radius:6px;margin-top:12px;">
+          <div>
+            <div style="font-weight:600;color:#1e40af;margin-bottom:4px;">
+              🔋 Battery Requirement
+            </div>
+            <div style="font-size:14px;color:#1e293b;">
+              Minimum Required: <strong>${minBatteryRequired.toFixed(1)} Wh</strong> (round trip)
+            </div>
+          </div>
+        </div>
+      `;
+      
+      const batteryCapacity = parseFloat(document.getElementById('batteryCapacity').value);
+      if (batteryCapacity && batteryCapacity > 0) {
+        const percentRemaining = energy.battery_percent_remaining;
+        const isFeasible = energy.is_feasible;
+        
+        let batteryClass = 'feasible';
+        let fillClass = '';
+        if (!isFeasible) {
+          batteryClass = 'not-feasible';
+          fillClass = 'low';
+        } else if (percentRemaining < 20) {
+          fillClass = 'low';
+        } else if (percentRemaining < 50) {
+          fillClass = 'medium';
+        }
+        
+        html += `
+          <div class="battery-status ${batteryClass}">
+            <div style="font-weight:600;margin-bottom:8px;">
+              ${isFeasible ? '✅ Round Trip Feasible' : '❌ Round Trip Not Feasible'}
+            </div>
+            <div style="font-size:12px;margin-bottom:4px;">
+              Battery Remaining: ${energy.battery_remaining_wh ? energy.battery_remaining_wh.toFixed(1) : 'N/A'} Wh
+            </div>
+            <div class="battery-bar">
+              <div class="battery-fill ${fillClass}" style="width: ${Math.max(0, Math.min(100, percentRemaining || 0))}%">
+                ${percentRemaining ? percentRemaining.toFixed(1) + '%' : 'N/A'}
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        // Show requirement even if no battery capacity entered
+        html += `
+          <div class="battery-status" style="background:#fef3c7;color:#92400e;">
+            <div style="font-weight:600;margin-bottom:8px;">
+              ⚠ Enter Battery Capacity to Check Feasibility
+            </div>
+            <div style="font-size:12px;">
+              Enter your battery capacity above to see if the round trip is feasible.
+            </div>
+          </div>
+        `;
+      }
+      
+      content.innerHTML = html;
+      panel.classList.add('visible');
+    }
+
+    // Event listeners
+    document.getElementById('computeBtn').addEventListener('click', computeRoute);
+    
+    // Load nodes on page load
+    loadNodes();
+  </script>
+</body>
+</html>
+

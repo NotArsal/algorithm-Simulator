@@ -1,0 +1,45 @@
+================================================================================
+MANUAL INDIA OSM DOWNLOAD INSTRUCTIONS
+================================================================================
+
+STEP 1: Download the PBF File
+-------------------------------
+1. Open your web browser
+2. Go to: https://download.geofabrik.de/asia/india.html
+3. Click on "india-latest.osm.pbf" to download
+4. File size: ~2-3 GB (compressed)
+5. Save it to: D:\navigation_india_osm\india-latest.osm.pbf
+
+   OR download a smaller region:
+   - Maharashtra: https://download.geofabrik.de/asia/india/maharashtra.html
+   - Delhi: https://download.geofabrik.de/asia/india/delhi.html
+   - Karnataka: https://download.geofabrik.de/asia/india/karnataka.html
+
+STEP 2: Convert PBF to CSV
+---------------------------
+1. Make sure the PBF file is saved to: D:\navigation_india_osm\india-latest.osm.pbf
+2. Run the conversion script:
+   
+   python convert_osm_pbf_to_csv.py
+
+3. Wait for conversion (10-30 minutes depending on file size)
+4. The script will create:
+   - D:\navigation_india_osm\india_nodes.csv
+   - D:\navigation_india_osm\india_graph.csv
+
+STEP 3: Done!
+-------------
+The server will automatically detect and use the files.
+No restart needed!
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+Download URL: https://download.geofabrik.de/asia/india.html
+PBF File: D:\navigation_india_osm\india-latest.osm.pbf
+Conversion Script: python convert_osm_pbf_to_csv.py
+Output: D:\navigation_india_osm\india_nodes.csv, india_graph.csv
+
+================================================================================
+

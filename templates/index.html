@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shortest Path Algorithm Simulator — Pune Road Network</title>
+  <meta name="description" content="Interactive shortest path algorithm visualizer comparing Dijkstra, A*, Bellman-Ford and Floyd-Warshall on the real Pune road network." />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- ── Top Bar ──────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">🧠</div>
+      <div>
+        <div class="topbar-title">Shortest Path Algorithm Simulator</div>
+        <div class="topbar-sub">Pune Road Network · Advanced Data Structures · Click map to select nodes</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="node-count-badge" class="node-count-badge">Loading...</div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ─────────────────────────────────────────── -->
+  <div class="main-content">
+
+    <!-- Map -->
+    <div id="map">
+      <!-- Click instruction overlay -->
+      <div id="map-instruction" class="map-instruction">
+        <div class="instruction-icon">📍</div>
+        <div class="instruction-text" id="instruction-text">Click any node on the map to set <strong>SOURCE</strong></div>
+      </div>
+
+      <!-- Legend overlay on map -->
+      <div id="map-legend" class="map-legend hidden">
+        <div class="legend-item"><span class="legend-dot" style="background:#00ff88;box-shadow:0 0 6px #00ff88"></span>Source</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ff00e5;box-shadow:0 0 6px #ff00e5"></span>Destination</div>
+        <div class="legend-item legend-sep"></div>
+        <div class="legend-item" id="legend-dijkstra" style="display:none"><span class="legend-dot" style="background:#00f5ff;box-shadow:0 0 6px #00f5ff"></span>Dijkstra</div>
+        <div class="legend-item" id="legend-astar" style="display:none"><span class="legend-dot" style="background:#ff00e5;box-shadow:0 0 6px #ff00e5"></span>A*</div>
+        <div class="legend-item" id="legend-bellman_ford" style="display:none"><span class="legend-dot" style="background:#00ff88;box-shadow:0 0 6px #00ff88"></span>Bellman-Ford</div>
+        <div class="legend-item" id="legend-floyd_warshall" style="display:none"><span class="legend-dot" style="background:#ff8c00;box-shadow:0 0 6px #ff8c00"></span>Floyd-Warshall</div>
+      </div>
+    </div>
+
+    <!-- Side Panel -->
+    <aside class="side-panel">
+
+      <!-- Selected Nodes Display -->
+      <div class="panel-section">
+        <div class="section-label">Selected Nodes</div>
+        <div class="selected-nodes-grid">
+
+          <div class="selected-node-card" id="src-card">
+            <div class="node-card-header">
+              <span class="node-card-icon src-icon">S</span>
+              <span class="node-card-label">Source</span>
+              <button class="node-clear-btn" id="src-clear-btn" onclick="clearSource()" title="Clear">✕</button>
+            </div>
+            <div class="node-card-value" id="src-display">
+              <span class="node-placeholder">Click a node on the map</span>
+            </div>
+          </div>
+
+          <div class="selected-node-card" id="dst-card">
+            <div class="node-card-header">
+              <span class="node-card-icon dst-icon">D</span>
+              <span class="node-card-label">Destination</span>
+              <button class="node-clear-btn" id="dst-clear-btn" onclick="clearDest()" title="Clear">✕</button>
+            </div>
+            <div class="node-card-value" id="dst-display">
+              <span class="node-placeholder">Click a node on the map</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Selection Mode Toggle -->
+        <div class="select-mode-row">
+          <button class="mode-btn active" id="mode-src-btn" onclick="setMode('src')">
+            <span class="mode-dot" style="background:#00ff88"></span>Set Source
+          </button>
+          <button class="mode-btn" id="mode-dst-btn" onclick="setMode('dst')">
+            <span class="mode-dot" style="background:#ff00e5"></span>Set Destination
+          </button>
+        </div>
+      </div>
+
+      <!-- Algorithm Selection -->
+      <div class="panel-section">
+        <div class="section-label">Select Algorithms</div>
+        <div class="algo-toggles">
+
+          <label class="algo-toggle cyan" id="toggle-dijkstra">
+            <input type="checkbox" value="dijkstra" checked onchange="onAlgoToggle(this)" />
+            <div class="toggle-body">
+              <div class="toggle-color-bar"></div>
+              <div class="toggle-info">
+                <div class="toggle-name">Dijkstra</div>
+                <div class="toggle-complexity">O((V+E) log V)</div>
+              </div>
+              <div class="toggle-check">✓</div>
+            </div>
+          </label>
+
+          <label class="algo-toggle magenta" id="toggle-astar">
+            <input type="checkbox" value="astar" checked onchange="onAlgoToggle(this)" />
+            <div class="toggle-body">
+              <div class="toggle-color-bar"></div>
+              <div class="toggle-info">
+                <div class="toggle-name">A* Search</div>
+                <div class="toggle-complexity">O(E log V) + heuristic</div>
+              </div>
+              <div class="toggle-check">✓</div>
+            </div>
+          </label>
+
+          <label class="algo-toggle lime" id="toggle-bellman_ford">
+            <input type="checkbox" value="bellman_ford" checked onchange="onAlgoToggle(this)" />
+            <div class="toggle-body">
+              <div class="toggle-color-bar"></div>
+              <div class="toggle-info">
+                <div class="toggle-name">Bellman-Ford</div>
+                <div class="toggle-complexity">O(V · E)</div>
+              </div>
+              <div class="toggle-check">✓</div>
+            </div>
+          </label>
+
+          <label class="algo-toggle orange" id="toggle-floyd_warshall">
+            <input type="checkbox" value="floyd_warshall" checked onchange="onAlgoToggle(this)" />
+            <div class="toggle-body">
+              <div class="toggle-color-bar"></div>
+              <div class="toggle-info">
+                <div class="toggle-name">Floyd-Warshall</div>
+                <div class="toggle-complexity">O(N³) precomputed</div>
+              </div>
+              <div class="toggle-check">✓</div>
+            </div>
+          </label>
+
+        </div>
+
+        <!-- Animation Speed -->
+        <div class="speed-row">
+          <span class="speed-label">Animation Speed</span>
+          <div class="speed-btns">
+            <button class="speed-btn" onclick="setSpeed(80)" id="speed-slow">Slow</button>
+            <button class="speed-btn active" onclick="setSpeed(30)" id="speed-med">Normal</button>
+            <button class="speed-btn" onclick="setSpeed(5)" id="speed-fast">Fast</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compute Button -->
+      <div class="panel-section">
+        <button class="btn-compute" id="btn-compute" onclick="computeRoutes()" disabled>
+          <div class="spinner"></div>
+          <span class="btn-text">⚡ Run Selected Algorithms</span>
+        </button>
+        <button class="btn-clear" id="btn-clear" onclick="clearAll()">✕ Clear All</button>
+      </div>
+
+      <!-- Algorithm Results Cards -->
+      <div class="panel-section" id="results-section" style="display:none">
+        <div class="section-label">Results</div>
+        <div class="results-grid" id="results-grid"></div>
+      </div>
+
+      <!-- Comparison Table -->
+      <div class="panel-section" id="table-section" style="display:none">
+        <div class="section-label">Performance Comparison</div>
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Algorithm</th>
+              <th>Time (ms)</th>
+              <th>Explored</th>
+              <th>Dist (km)</th>
+            </tr>
+          </thead>
+          <tbody id="comparison-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Insights -->
+      <div class="panel-section">
+        <div class="section-label">Algorithm Insights</div>
+        <div class="info-box">
+          <div class="info-item"><span class="info-algo-tag tag-cyan">Dijkstra</span><span class="info-text">Explores all directions uniformly. Guaranteed optimal.</span></div>
+          <div class="info-item"><span class="info-algo-tag tag-magenta">A*</span><span class="info-text">Haversine heuristic guides search toward goal. Fewer nodes explored.</span></div>
+          <div class="info-item"><span class="info-algo-tag tag-lime">B-F</span><span class="info-text">Relaxes all edges V-1 times. Slowest, handles negative weights.</span></div>
+          <div class="info-item"><span class="info-algo-tag tag-orange">F-W</span><span class="info-text">All-pairs precomputed at startup. Query is instant O(1).</span></div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- Status Bar -->
+  <footer class="status-bar">
+    <div class="status-dot"></div>
+    <span id="status-msg">Initializing...</span>
+    <div id="anim-progress" class="anim-progress" style="display:none">
+      <div class="anim-bar" id="anim-bar"></div>
+    </div>
+  </footer>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='map.js') }}"></script>
+</body>
+</html>

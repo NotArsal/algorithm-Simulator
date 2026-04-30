@@ -1,0 +1,13 @@
+{
+  "mode": "Fastest",
+  "alpha": 2.000000,
+  "total_distance_km": 6.902772,
+  "avg_safety": 87.000000,
+  "nodes": [
+    { "node_id": 7000007, "lat": 18.559600, "lon": 73.793800, "label": "Baner" },
+    { "node_id": 7000009, "lat": 18.593300, "lon": 73.738800, "label": "Hinjewadi" }
+  ],
+  "edges": [
+    { "from": 7000007, "to": 7000009, "distance_km": 6.902772, "safety": 87.00 }
+  ]
+}
