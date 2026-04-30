@@ -2,6 +2,10 @@
 
 This project is an **Advanced Data Structures** course project that simulates and visualizes shortest path routing algorithms on real-world geographical data (Pune map). The application provides a full-stack dashboard to benchmark and compare the performance, pathing, and computational efficiency of different routing algorithms.
 
+## System Architecture
+
+![System Architecture Diagram — Shortest Path Algorithm Simulator, Pune Road Network](assets/fig1.png)
+
 ## Features
 
 - **Real-World Graph Data**: Uses spatial map data from Pune to calculate shortest paths.
@@ -12,6 +16,14 @@ This project is an **Advanced Data Structures** course project that simulates an
   - Floyd-Warshall Algorithm (precomputed)
 - **Interactive Web Interface**: A beautifully designed frontend built with HTML/CSS and JavaScript to visualize the search tree and final path on a map.
 - **Benchmarking & Telemetry**: Compares distance, time taken, and nodes explored side-by-side for each algorithm.
+
+## Visual Showcase
+
+### Node Selection
+![Interactive Pune Road Map — Source and Destination Node Selection](assets/fig2.png)
+
+### Algorithm Comparison & Visualization
+![Shortest Path Visualization — Four Algorithms on Pune Road Network](assets/fig3.png)
 
 ## Technology Stack
 
