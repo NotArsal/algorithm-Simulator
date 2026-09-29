@@ -8,7 +8,7 @@ This project is an **Advanced Data Structures** course project that simulates an
 
 ## Demo
 
-<video src="assets/Screen Recording 2026-04-30 030003.mp4" controls width="100%"></video>
+[Watch the demo recording](assets/Screen%20Recording%202026-04-30%20030003.mp4)
 
 ## Features
 
