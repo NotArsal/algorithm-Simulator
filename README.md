@@ -6,6 +6,10 @@ This project is an **Advanced Data Structures** course project that simulates an
 
 ![System Architecture Diagram — Shortest Path Algorithm Simulator, Pune Road Network](assets/fig1.png)
 
+## Demo
+
+<video src="assets/Screen Recording 2026-04-30 030003.mp4" controls width="100%"></video>
+
 ## Features
 
 - **Real-World Graph Data**: Uses spatial map data from Pune to calculate shortest paths.

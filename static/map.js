@@ -5,7 +5,7 @@
    • Algorithm checkboxes (run only selected)
    • Step-by-step exploration animation per algorithm
    • Clears all previous layers before each new run
-   • Neon glow polylines on CartoDB Dark Matter tiles
+   • Neon glow polylines, switchable Default/Satellite/Terrain base layers
 ═══════════════════════════════════════════════════════════════ */
 
 const ALGO_CFG = {
@@ -36,11 +36,32 @@ document.addEventListener('DOMContentLoaded', () => {
 function initMap() {
   map = L.map('map', { center:[18.5204,73.8567], zoom:15, zoomControl:true });
 
-  // CartoDB Dark Matter — pure black tiles
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution:'&copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains:'abcd', maxZoom:19,
+  // Default — Esri Dark Gray Canvas, free, no API key. Native detail stops
+  // around z16 for this region; Leaflet upscales beyond that instead of
+  // requesting the "no data" placeholder tile.
+  const defaultLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'Tiles &copy; Esri',
+    maxZoom:19, maxNativeZoom:16,
   }).addTo(map);
+
+  // Satellite — Esri World Imagery, free, no API key.
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution:'Tiles &copy; Esri',
+    maxZoom:19,
+  });
+
+  // Terrain — OpenTopoMap, free, no API key. Native detail stops at z17;
+  // Leaflet upscales beyond that instead of requesting missing tiles.
+  const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution:'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+    subdomains:'abc', maxZoom:19, maxNativeZoom:17,
+  });
+
+  L.control.layers({
+    'Default':   defaultLayer,
+    'Satellite': satelliteLayer,
+    'Terrain':   terrainLayer,
+  }, null, { position:'topright' }).addTo(map);
 
   nodeMarkersLayer = L.layerGroup().addTo(map);
   routeLayer       = L.layerGroup().addTo(map);

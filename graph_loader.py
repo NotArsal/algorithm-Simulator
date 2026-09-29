@@ -15,7 +15,7 @@ GRAPH_CSV = os.path.join(ROOT, 'data', 'pune_graph.csv')
 # Pune city center (Shivaji Nagar / FC Road area)
 SEED_LAT = 18.5204
 SEED_LON = 73.8567
-SUBGRAPH_SIZE = 200  # safe for Floyd-Warshall O(N^3)
+SUBGRAPH_SIZE = 500  # Floyd-Warshall is O(N^3); ~1s startup at this size, ~5.5s at 800, ~19s at 1200
 
 _subgraph_cache = None
 
